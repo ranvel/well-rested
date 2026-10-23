@@ -1,0 +1,13 @@
+# Runtime data
+_cache/
+proxy.db
+proxy.db-wal
+proxy.db-shm
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+.DS_Store

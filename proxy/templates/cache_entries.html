@@ -1,0 +1,37 @@
+<div id="entries">
+	<p class="hint">{{ count }} entr{{ "y" if count == 1 else "ies" }}, {{ bytes | bytes_human }}{% if purged %} — {{ purged }}{% endif %}</p>
+	{% if entries %}
+	<table>
+		<thead>
+			<tr><th>URL</th><th>Partition</th><th>Age / TTL</th><th class="num">Size</th><th class="num">Hits</th><th>Rule</th><th></th></tr>
+		</thead>
+		<tbody>
+		{% for e in entries %}
+			<tr>
+				<td><code>{{ e.url }}</code></td>
+				<td>{{ e.identity }}</td>
+				<td><span class="chip {{ 'fresh' if e.fresh else 'stale' }}">{{ "fresh" if e.fresh else "stale" }}</span>
+					{{ e.age_s | age_human }} / {{ e.ttl | ttl_human }}</td>
+				<td class="num">{{ e.bytes | bytes_human }}</td>
+				<td class="num">{{ e.hits }}</td>
+				<td>{% if e.rule %}<code>{{ e.rule }}</code>
+					<form class="inline" hx-post="/_admin/cache/purge" hx-target="#entries" hx-swap="outerHTML"
+						hx-confirm="Purge every entry stored by {{ e.rule }}, in every shelf?">
+						<input type="hidden" name="upstream_id" value="{{ upstream_id }}"><input type="hidden" name="filter" value="{{ identity }}">
+						<input type="hidden" name="rule_id" value="{{ e.rule_id }}"><button class="quiet">purge rule</button>
+					</form>
+					{% else %}<span class="hint">rule #{{ e.rule_id }} (deleted)</span>{% endif %}</td>
+				<td>
+					<form class="inline" hx-post="/_admin/cache/purge" hx-target="#entries" hx-swap="outerHTML">
+						<input type="hidden" name="upstream_id" value="{{ upstream_id }}"><input type="hidden" name="filter" value="{{ identity }}">
+						<input type="hidden" name="key" value="{{ e.key }}"><button class="quiet">purge</button>
+					</form>
+				</td>
+			</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+	{% else %}
+	<p class="empty">Nothing cached here{% if identity != "all" %} for {{ identity }}{% endif %}.</p>
+	{% endif %}
+</div>

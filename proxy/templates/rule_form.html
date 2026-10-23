@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit rule" if rule.id else "New rule" }} — Well RESTed{% endblock %}
+{% block content %}
+<h1>{{ "Edit rule" if rule.id else "New rule" }}</h1>
+<form method="post" action="{{ action }}">
+	<label>Upstream
+		<select name="upstream_id" required>
+			{% if not rule.upstream_id %}<option value="" selected disabled>choose…</option>{% endif %}
+			{% for u in upstreams %}<option value="{{ u }}"{% if u == rule.upstream_id %} selected{% endif %}>{{ u }}</option>{% endfor %}
+		</select>
+	</label>
+	<label>Pattern
+		<input type="text" name="pattern" value="{{ rule.pattern }}" placeholder="/rest/api/2/issue/*" required autofocus>
+	</label>
+	<p class="hint">The pattern matches the path as the client sends it, on this upstream only. <code>*</code> matches within one path segment, <code>**</code> across segments; the most specific matching rule wins.</p>
+
+	<fieldset>
+		<legend>TTL</legend>
+		{% for label, seconds in presets %}
+		<label class="choice"><input type="radio" name="ttl" value="{{ seconds }}"{% if ttl_choice == seconds|string %} checked{% endif %}> {{ label }}</label>
+		{% endfor %}
+		<label class="choice"><input type="radio" name="ttl" value="never"{% if ttl_choice == "never" %} checked{% endif %}> Never expires</label>
+		<label class="choice"><input type="radio" name="ttl" value="bypass"{% if ttl_choice == "bypass" %} checked{% endif %}> Bypass (never cache)</label>
+		<label class="choice"><input type="radio" name="ttl" value="custom"{% if ttl_choice == "custom" %} checked{% endif %}> Custom
+			<input class="short" type="text" name="ttl_custom" value="{{ ttl_custom }}" placeholder="90s, 45m, 3h, 2d"></label>
+	</fieldset>
+
+	<fieldset>
+		<legend>Query string</legend>
+		{% for mode, help in query_modes %}
+		<label class="choice"><input type="radio" name="query_mode" value="{{ mode }}"{% if rule.query_mode == mode %} checked{% endif %}> <strong>{{ mode }}</strong> — {{ help }}</label><br>
+		{% endfor %}
+	</fieldset>
+
+	{% if rule.id %}
+	<label class="choice"><input type="checkbox" name="enabled"{% if rule.enabled %} checked{% endif %}> Enabled</label>
+	{% endif %}
+
+	<label>Note <input type="text" name="note" value="{{ rule.note or '' }}" placeholder="optional"></label>
+
+	<p class="actions"><button>Save</button> <a class="button quiet" href="/_admin/rules">Cancel</a></p>
+</form>
+{% endblock %}

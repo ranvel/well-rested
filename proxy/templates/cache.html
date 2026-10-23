@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Cache — Well RESTed{% endblock %}
+{% block content %}
+<h1>Cache</h1>
+<form method="get" action="/_admin/cache" class="filters">
+	<label class="choice">Shelf
+		<select name="upstream_id" onchange="this.form.submit()">
+			{% for p in upstream_ids %}<option value="{{ p }}"{% if p == upstream_id %} selected{% endif %}>{{ p }}</option>{% endfor %}
+		</select>
+	</label>
+	<label class="choice">Partition
+		<select name="identity" onchange="this.form.submit()">
+			{% for i in identities %}<option value="{{ i }}"{% if i == identity %} selected{% endif %}>{{ i }}</option>{% endfor %}
+		</select>
+	</label>
+	<noscript><button>Show</button></noscript>
+</form>
+
+{% if upstream_id %}
+<p class="actions">
+	<form class="inline" hx-post="/_admin/cache/purge" hx-target="#entries" hx-swap="outerHTML"
+		hx-confirm="Purge every entry in {{ upstream_id }}?">
+		<input type="hidden" name="upstream_id" value="{{ upstream_id }}"><input type="hidden" name="filter" value="{{ identity }}">
+		<input type="hidden" name="all" value="1"><button class="quiet">Purge all of {{ upstream_id }}</button>
+	</form>
+	{% if identity != "all" %}
+	<form class="inline" hx-post="/_admin/cache/purge" hx-target="#entries" hx-swap="outerHTML"
+		hx-confirm="Purge every entry of {{ identity }}, in every shelf?">
+		<input type="hidden" name="upstream_id" value="{{ upstream_id }}"><input type="hidden" name="filter" value="{{ identity }}">
+		<input type="hidden" name="identity" value="{{ identity }}"><button class="quiet">Purge {{ identity }} everywhere</button>
+	</form>
+	{% endif %}
+</p>
+{% include "cache_entries.html" %}
+{% else %}
+<p class="empty">No shelves yet: nothing has been cached.</p>
+{% endif %}
+{% endblock %}

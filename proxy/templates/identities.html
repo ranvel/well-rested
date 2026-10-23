@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Identities — Well RESTed{% endblock %}
+{% block content %}
+<h1>Identities</h1>
+<p class="hint">Clients name an identity with <code>X-WR-Identity</code>; the proxy injects its token as <code>Authorization</code>, or as the header a custom identity names. Tokens live in the Keychain and are never shown here.</p>
+{% if identities %}
+<table>
+	<thead>
+		<tr><th>Name</th><th>Upstreams</th><th>Scheme</th><th>Token health</th><th>Status</th><th>Rotate</th><th></th></tr>
+	</thead>
+	<tbody>
+	{% for i in identities %}
+		<tr id="identity-{{ i.name }}">
+			<td><strong>{{ i.name }}</strong><br>
+				<code>X-WR-Identity: {{ i.name }}</code> <button type="button" class="copy" data-copy="X-WR-Identity: {{ i.name }}">copy</button></td>
+			<td>{% for p in i.upstreams %}<code>{{ p }}</code>{% if not loop.last %}<br>{% endif %}{% else %}<span class="hint">none — bind it on <a href="/_admin/upstreams">Upstreams</a></span>{% endfor %}</td>
+			<td>{{ i.scheme }}{% if i.username %}<br><span class="hint">{{ i.username }}</span>{% elif i.header %}<br><span class="hint">{{ i.header }}</span>{% endif %}</td>
+			<td>
+				<div class="health"><div class="fill {{ i.health.level }}" style="width: {{ (i.health.fraction * 100) | round }}%"></div></div>
+				<span class="chip {{ i.health.level }}">{{ i.health.level }}</span>
+				<br><span class="hint">expires {{ i.expires_at[:10] }}</span>
+				{% if i.rotate_url %}<br><a href="{{ i.rotate_url }}" target="_blank" rel="noopener">get a new token ↗</a>{% endif %}
+			</td>
+			<td>
+				{% if not i.has_token %}<span class="chip red">no token{% if i.load_error %}: {{ i.load_error }}{% endif %}</span>
+				{% elif i.last_status == "rejected" %}<span class="chip rejected">rejected (401)</span>
+				{% elif i.last_status == "ok" %}ok
+				{% else %}<span class="hint">not used yet</span>{% endif %}
+				{% if i.last_status_at %}<br><span class="hint">{{ i.last_status_at[:16].replace("T", " ") }} UTC</span>{% endif %}
+			</td>
+			<td>
+				<form method="post" action="/_admin/identities/{{ i.name }}/token">
+					<input type="password" name="token" autocomplete="off" placeholder="{% if i.scheme == "custom" %}new {{ i.header }} value{% if i.header == "Authorization" %}, e.g. Token abc123{% endif %}{% else %}new token{% endif %}" required>
+					<input class="short" type="text" name="expires" value="30d" placeholder="30d or 2027-01-01" required>
+					<button>Save</button>
+				</form>
+			</td>
+			<td>
+				<form class="inline" method="post" action="/_admin/identities/{{ i.name }}/delete"
+					data-confirm="Delete identity {{ i.name }}, its Keychain token and its approvals?" onsubmit="return confirm(this.dataset.confirm)">
+					<button class="quiet">Delete</button>
+				</form>
+			</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="empty">No identities yet. Anonymous requests still work; they carry no credentials.</p>
+{% endif %}
+
+<h2>Add identity</h2>
+<p class="hint">Create the identity first, then bind it to one or more upstreams on the <a href="/_admin/upstreams">Upstreams</a> page. One account that reaches many sites is one identity.</p>
+<form method="post" action="/_admin/identities">
+	<label>Name <input type="text" name="name" value="{{ form.name }}" placeholder="jira-uat" pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}" required></label>
+	<fieldset>
+		<legend>Scheme</legend>
+		<label class="choice"><input type="radio" name="scheme" value="basic"{% if form.scheme == "basic" %} checked{% endif %}> basic (username + API token)</label>
+		<label class="choice"><input type="radio" name="scheme" value="bearer"{% if form.scheme == "bearer" %} checked{% endif %}> bearer (token only)</label>
+		<label class="choice"><input type="radio" name="scheme" value="custom"{% if form.scheme == "custom" %} checked{% endif %}> custom (the whole value of one header, sent exactly as typed)</label>
+	</fieldset>
+	<label data-scheme="basic">Username <input type="text" name="username" value="{{ form.username }}" placeholder="you@example.com"></label>
+	<label data-scheme="custom">Header name <input type="text" name="header" value="{{ form.header }}" placeholder="Authorization"></label>
+	<label>Token <input type="password" name="token" autocomplete="off" required></label>
+	<p class="hint" data-scheme="custom">Name the header (<code>Authorization</code> when blank, or e.g. <code>x-api-key</code>, <code>Cookie</code>) and type its whole value as the token, e.g. <code>Token abc123</code> or <code>session=…</code>. A client header of the same name is replaced by it.</p>
+	<label>Issued <input class="short" type="text" name="issued" value="{{ form.issued }}" placeholder="today"></label>
+	<label>Expires <input class="short" type="text" name="expires" value="{{ form.expires }}" placeholder="30d or 2027-01-01" required></label>
+	<label>Rotate URL <input type="url" name="rotate_url" value="{{ form.rotate_url }}" placeholder="https://… (optional; linked from the health column)"></label>
+	<p class="hint">Dates are YYYY-MM-DD (read as 00:00 UTC), an ISO timestamp with an offset, or 30d / 12h from now.</p>
+	<p class="actions"><button>Add</button></p>
+</form>
+{% endblock %}

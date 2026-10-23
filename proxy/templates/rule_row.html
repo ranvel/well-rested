@@ -1,0 +1,16 @@
+<tr id="rule-{{ rule.id }}">
+	<td>{{ rule.upstream_id }}</td>
+	<td><code>{{ rule.pattern }}</code></td>
+	<td>{{ rule.ttl_seconds | ttl_human }}</td>
+	<td>{{ rule.query_mode }}</td>
+	<td class="num">{{ hits.get(rule.id, 0) }}</td>
+	<td>
+		<form hx-post="/_admin/rules/{{ rule.id }}/toggle" hx-target="#rule-{{ rule.id }}" hx-swap="outerHTML">
+			<button class="toggle {{ 'on' if rule.enabled else 'off' }}">{{ "on" if rule.enabled else "off" }}</button>
+		</form>
+	</td>
+	<td>{{ rule.note or "" }}</td>
+	<td><a href="/_admin/rules/{{ rule.id }}/edit">edit</a>
+		<form class="inline" method="post" action="/_admin/rules/{{ rule.id }}/delete"
+			data-confirm="Delete {{ rule.pattern }} on {{ rule.upstream_id }}?" onsubmit="return confirm(this.dataset.confirm)"><button>delete</button></form></td>
+</tr>

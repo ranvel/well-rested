@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Copy rules — Well RESTed{% endblock %}
+{% block content %}
+<h1>Copy rules from…</h1>
+<p class="hint">Every rule of the source upstream is duplicated onto the target with the same pattern, keeping its TTL, query mode, enabled state and note. Patterns the target already has are skipped. Copies are independent: later edits to a source rule don't follow.</p>
+<form method="post" action="/_admin/rules/copy">
+	<label>Source
+		<select name="source" required>
+			{% for upstream_id in upstreams %}<option value="{{ upstream_id }}"{% if report and report.source == upstream_id %} selected{% endif %}>{{ upstream_id }}</option>{% endfor %}
+		</select>
+	</label>
+	<label>Target
+		<select name="target" required>
+			{% for upstream_id in upstreams %}<option value="{{ upstream_id }}"{% if report and report.target == upstream_id %} selected{% endif %}>{{ upstream_id }}</option>{% endfor %}
+		</select>
+	</label>
+	<p class="actions"><button>Copy</button> <a class="button quiet" href="/_admin/rules">Back to rules</a></p>
+</form>
+
+{% if report %}
+<div class="report">
+	<h2>Copied ({{ report.copied | length }})</h2>
+	{% if report.copied %}<ul>{% for pattern in report.copied %}<li><code>{{ pattern }}</code></li>{% endfor %}</ul>
+	{% else %}<p class="empty">Nothing new to copy.</p>{% endif %}
+	<h2>Skipped, already on {{ report.target }} ({{ report.skipped | length }})</h2>
+	{% if report.skipped %}<ul>{% for pattern in report.skipped %}<li><code>{{ pattern }}</code></li>{% endfor %}</ul>
+	{% else %}<p class="empty">None.</p>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

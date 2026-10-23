@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Proxies — Well RESTed{% endblock %}
+{% block content %}
+<h1>Proxies</h1>
+<p class="hint">An upstream can reach its base URL through one of these instead of connecting directly. Pick it in the <a href="/_admin/upstreams">Upstreams</a> tab.</p>
+{% if proxies %}
+<table>
+	<thead>
+		<tr><th>Name</th><th>URL</th><th>Username</th><th>Password</th><th>Verify TLS</th><th>CA bundle</th><th>Used by</th><th></th><th></th></tr>
+	</thead>
+	<tbody>
+	{% for p in proxies %}
+		{% set edit = "edit-proxy-" ~ p.name %}
+		<tr id="proxy-{{ p.name }}">
+			<td><code>{{ p.name }}</code>
+				<form method="post" action="/_admin/proxies/{{ p.name }}" id="{{ edit }}">
+					{% if p.url.startswith("https://") %}<input type="hidden" name="verify_tls_sent" value="1">{% endif %}
+				</form></td>
+			<td><input form="{{ edit }}" type="text" name="url" value="{{ p.url }}" required></td>
+			<td><input form="{{ edit }}" class="short" type="text" name="username" value="{{ p.username or '' }}"></td>
+			<td><input form="{{ edit }}" class="short" type="password" name="password" autocomplete="off"
+				placeholder="{% if p.password == 'stored' %}stored in Keychain{% elif p.password == 'missing' %}⚠️ missing from Keychain{% elif p.password == 'unreadable' %}⚠️ Keychain read failed: {{ p.keychain_error }}{% endif %}"></td>
+			<td><input form="{{ edit }}" type="checkbox" name="verify_tls"{% if p.verify_tls %} checked{% endif %}{% if not p.url.startswith("https://") %} disabled title="only https:// proxies have a certificate to verify"{% endif %}></td>
+			<td><input form="{{ edit }}" type="text" name="ca_bundle" value="{{ p.ca_bundle or '' }}" placeholder="optional /path/to/ca.pem"></td>
+			<td>{% for upstream_id in p.used_by %}<a href="/_admin/upstreams#upstream-{{ upstream_id }}"><code>{{ upstream_id }}</code></a>{% if not loop.last %}<br>{% endif %}{% else %}<span class="hint">none</span>{% endfor %}</td>
+			<td><button form="{{ edit }}">Save</button></td>
+			<td>
+				<form class="inline" method="post" action="/_admin/proxies/{{ p.name }}/delete"
+					data-confirm="Delete proxy {{ p.name }} and its Keychain password?" onsubmit="return confirm(this.dataset.confirm)">
+					<button class="quiet"{% if p.used_by %} disabled title="used by {% for upstream_id in p.used_by %}{{ upstream_id }}{% if not loop.last %}, {% endif %}{% endfor %}"{% endif %}>Delete</button>
+				</form>
+			</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="empty">No proxies yet. Every upstream connects directly.</p>
+{% endif %}
+
+<h2>Add proxy</h2>
+<form method="post" action="/_admin/proxies">
+	<input type="hidden" name="verify_tls_sent" value="1">
+	<label>Name <input type="text" name="name" value="{{ form.name }}" placeholder="corp-egress" pattern="[a-z0-9][a-z0-9-]{0,63}" required></label>
+	<label>URL <input type="text" name="url" value="{{ form.url }}" placeholder="http://10.0.0.5:3128" required></label>
+	<label>Username <input type="text" name="username" value="{{ form.username }}" placeholder="optional"></label>
+	<label>Password <input type="password" name="password" autocomplete="off"></label>
+	<label class="choice"><input type="checkbox" name="verify_tls" checked> Verify TLS (https:// proxies only)</label>
+	<label>CA bundle <input type="text" name="ca_bundle" value="{{ form.ca_bundle }}" placeholder="optional /path/to/corp-ca.pem"></label>
+	<p class="hint">Schemes: http://, https://, socks5:// and socks5h:// (SOCKS hostnames are resolved at the proxy; SOCKS needs a port). Credentials go in Username and Password, never in the URL; the password is kept in the Keychain. A CA bundle is trusted for the proxy and for every upstream routed through it (for proxies that re-sign TLS). Names can't be changed later: create a new proxy, repoint the upstreams, delete the old one.</p>
+	<p class="actions"><button>Add</button></p>
+</form>
+{% endblock %}

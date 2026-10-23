@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Approvals — Well RESTed{% endblock %}
+{% block content %}
+<h1>Approvals</h1>
+<p class="hint">Which LAN clients may use which identity. Loopback clients are never asked. "Always" means "don't ask me again", not "access forever": the token's own expiry still bounds it.</p>
+
+<h2>Pending</h2>
+{% include "approvals_pending.html" %}
+
+<h2>Always</h2>
+{% if always %}
+<table>
+	<thead><tr><th>Client</th><th>Identity</th><th>Since</th><th></th></tr></thead>
+	<tbody>
+	{% for a in always %}
+		<tr>
+			<td><code>{{ a.client_addr }}</code></td>
+			<td>{{ a.identity }}</td>
+			<td>{{ a.granted_at[:16].replace("T", " ") }} UTC</td>
+			<td><form class="inline" method="post" action="/_admin/approvals/always/revoke">
+				<input type="hidden" name="client_addr" value="{{ a.client_addr }}"><input type="hidden" name="identity" value="{{ a.identity }}">
+				<button class="quiet">Revoke</button></form></td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}<p class="empty">No Always approvals.</p>{% endif %}
+
+<h2>One hour / Session</h2>
+{% if grants %}
+<table>
+	<thead><tr><th>Client</th><th>Identity</th><th>Kind</th><th>Expires</th><th></th></tr></thead>
+	<tbody>
+	{% for g in grants %}
+		<tr>
+			<td><code>{{ g.client_addr }}</code></td>
+			<td>{{ g.identity }}</td>
+			<td>{{ "One hour" if g.kind == "hour" else "Session" }}</td>
+			<td>{% if g.expires_in_s is none %}when the proxy restarts{% else %}in {{ g.expires_in_s | age_human }}{% endif %}</td>
+			<td><form class="inline" method="post" action="/_admin/approvals/grants/revoke">
+				<input type="hidden" name="client_addr" value="{{ g.client_addr }}"><input type="hidden" name="identity_id" value="{{ g.identity_id }}">
+				<button class="quiet">Revoke</button></form></td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}<p class="empty">No One hour or Session grants in this process.</p>{% endif %}
+
+<h2>No cooldowns</h2>
+{% if cooldowns %}
+<table>
+	<thead><tr><th>Client</th><th>Identity</th><th>Asks again</th><th></th></tr></thead>
+	<tbody>
+	{% for c in cooldowns %}
+		<tr>
+			<td><code>{{ c.client_addr }}</code></td>
+			<td>{{ c.identity }}</td>
+			<td>in {{ c.remaining_s | age_human }}</td>
+			<td><form class="inline" method="post" action="/_admin/approvals/cooldowns/clear">
+				<input type="hidden" name="client_addr" value="{{ c.client_addr }}"><input type="hidden" name="identity_id" value="{{ c.identity_id }}">
+				<button class="quiet">Clear</button></form></td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}<p class="empty">No client is on a "No" cooldown.</p>{% endif %}
+{% endblock %}

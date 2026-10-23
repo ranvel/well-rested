@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Rules — Well RESTed{% endblock %}
+{% block content %}
+<h1>Rules</h1>
+<p><a class="button" href="/_admin/rules/new{% if upstream %}?upstream={{ upstream }}{% endif %}">New rule</a>
+   <a class="button" href="/_admin/rules/copy">Copy rules from…</a></p>
+<form method="get" action="/_admin/rules">
+	<label>Upstream
+		<select name="upstream" onchange="this.form.submit()">
+			<option value="">all</option>
+			{% for u in upstreams %}<option value="{{ u }}"{% if u == upstream %} selected{% endif %}>{{ u }}</option>{% endfor %}
+		</select>
+	</label>
+	<noscript><button>Filter</button></noscript>
+</form>
+<p class="hint">Each rule belongs to one upstream and matches only its requests; the pattern is the path as the client sends it.</p>
+{% if rules %}
+<table>
+	<thead>
+		<tr><th>Upstream</th><th>Pattern</th><th>TTL</th><th>Query</th><th class="num">Hits</th><th>Enabled</th><th>Note</th><th></th></tr>
+	</thead>
+	<tbody>
+	{% for rule in rules %}
+		{% include "rule_row.html" %}
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="empty">No rules yet. Every request passes through uncached until one matches.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>{% block title %}Well RESTed{% endblock %}</title>
+	<link rel="icon" type="image/png" href="/_admin/static/favicon.png">
+	<link rel="stylesheet" href="/_admin/static/style.css">
+	<meta name="htmx-config" content='{"responseHandling": [{"code": ".*", "swap": true}]}'>
+	<script src="/_admin/static/htmx.min.js"></script>
+	<script src="/_admin/static/admin.js" defer></script>
+</head>
+<body>
+	<header>
+		<span class="wordmark">Well RESTed</span>
+		<nav>
+			{% for label, href in [
+				("Rules", "/_admin/rules"),
+				("Cache", "/_admin/cache"),
+				("Upstreams", "/_admin/upstreams"),
+				("Identities", "/_admin/identities"),
+				("Proxies", "/_admin/proxies"),
+				("Approvals", "/_admin/approvals"),
+				("Test a URL", "/_admin/test"),
+			] %}
+			<a href="{{ href }}"{% if request.url.path.startswith(href) %} class="current"{% endif %}>{{ label }}</a>
+			{% endfor %}
+		</nav>
+	</header>
+	<main>
+		{% if message %}<p class="flash{% if error %} error{% endif %}">{{ message }}</p>{% endif %}
+		{% block content %}{% endblock %}
+	</main>
+</body>
+</html>

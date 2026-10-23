@@ -1,0 +1,27 @@
+<div id="pending" hx-get="/_admin/approvals/pending" hx-trigger="every 2s" hx-swap="outerHTML">
+	{% if notice %}<p class="flash error">{{ notice }}</p>{% endif %}
+	{% if pending %}
+	<table>
+		<thead><tr><th>Client</th><th>Identity</th><th>Asked</th><th>Answer</th></tr></thead>
+		<tbody>
+		{% for p in pending %}
+			<tr>
+				<td><code>{{ p.client_addr }}</code></td>
+				<td>{{ p.identity }}<br><span class="hint">{{ p.message }}</span></td>
+				<td>{{ p.asked_at | int | datetime_utc }}</td>
+				<td>
+					<form hx-post="/_admin/approvals/answer" hx-target="#pending" hx-swap="outerHTML">
+						<input type="hidden" name="client_addr" value="{{ p.client_addr }}">
+						<input type="hidden" name="identity_id" value="{{ p.identity_id }}">
+						{% for d in decisions %}<button name="decision" value="{{ d }}"{% if d == "No" %} class="quiet"{% endif %}>{{ d }}</button> {% endfor %}
+					</form>
+				</td>
+			</tr>
+		{% endfor %}
+		</tbody>
+	</table>
+	<p class="hint">The same prompt is on screen; whichever answer comes first wins and closes the other.</p>
+	{% else %}
+	<p class="empty">Nothing pending. A prompt raised while this page is open appears here within two seconds.</p>
+	{% endif %}
+</div>

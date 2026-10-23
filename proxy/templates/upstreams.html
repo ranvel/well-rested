@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Upstreams — Well RESTed{% endblock %}
+{% block content %}
+<h1>Upstreams</h1>
+<p class="hint">A request names its upstream with <code>X-WR-Upstream: jira</code> (or leaves it out when its identity is bound to just one), and its path is appended untouched to that base URL: <code>/rest/…</code> goes to the <code>jira</code> base URL plus <code>/rest/…</code>. Tick the identities whose token may be sent to it; one identity can be bound to many upstreams. Pick a proxy to reach the base URL through one from the <a href="/_admin/proxies">Proxies</a> tab.</p>
+{% if upstreams %}
+<table>
+	<thead>
+		<tr><th>Upstream ID</th><th>Base URL</th><th>Verify TLS</th><th class="num">Timeout (s)</th><th>Proxy</th><th>Identities</th><th></th><th></th></tr>
+	</thead>
+	<tbody>
+	{% for up in upstreams %}
+		{% set edit = "edit-" ~ up.upstream_id %}
+		<tr id="upstream-{{ up.upstream_id }}">
+			<td><code>{{ up.upstream_id }}</code><br>
+				<code>X-WR-Upstream: {{ up.upstream_id }}</code> <button type="button" class="copy" data-copy="X-WR-Upstream: {{ up.upstream_id }}">copy</button>
+				<form method="post" action="/_admin/upstreams" id="{{ edit }}">
+					<input type="hidden" name="upstream_id" value="{{ up.upstream_id }}">
+					<input type="hidden" name="identities_sent" value="1">
+				</form></td>
+			<td><input form="{{ edit }}" type="url" name="base_url" value="{{ up.base_url }}" required></td>
+			<td><input form="{{ edit }}" type="checkbox" name="verify_tls"{% if up.verify_tls %} checked{% endif %}></td>
+			<td class="num"><input form="{{ edit }}" class="short" type="number" name="timeout_s" value="{{ up.timeout_s }}" min="0.1" max="600" step="0.1" required></td>
+			<td>
+				<select form="{{ edit }}" name="proxy">
+					<option value="">Direct</option>
+					{%- for name in proxy_names %}<option value="{{ name }}"{% if up.proxy == name %} selected{% endif %}>{{ name }}</option>{% endfor -%}
+				</select>
+				{% if up.plaintext_via_proxy %}<br><span class="warn">⚠️ http:// upstream: {{ up.proxy }} can read the injected credentials</span>{% endif %}
+			</td>
+			<td>
+				{%- for name in identity_names %}<label class="choice"><input form="{{ edit }}" type="checkbox" name="identities" value="{{ name }}"{% if name in up.identities %} checked{% endif %}> {{ name }}</label>{% else %}<span class="hint">none</span>{% endfor -%}
+			</td>
+			<td><button form="{{ edit }}">Save</button></td>
+			<td>
+				<form class="inline" method="post" action="/_admin/upstreams/{{ up.upstream_id }}/delete"
+					data-confirm="Delete upstream {{ up.upstream_id }}? Its rules are deleted too; its cache shelf is left on disk.{% if up.identities %} This unbinds {{ up.identities | join(', ') }} (the identities themselves stay).{% endif %}" onsubmit="return confirm(this.dataset.confirm)">
+					<button class="quiet">Delete</button>
+				</form>
+			</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% else %}
+<p class="empty">No upstreams yet. Every request gets a 502 until one is added.</p>
+{% endif %}
+
+<h2>Add upstream</h2>
+<form method="post" action="/_admin/upstreams">
+	<label>Upstream ID <input type="text" name="upstream_id" placeholder="jira" pattern="[A-Za-z0-9][A-Za-z0-9._-]*" required></label>
+	<label>Base URL <input type="url" name="base_url" placeholder="https://jira.example.com" required></label>
+	<label class="choice"><input type="checkbox" name="verify_tls" checked> Verify TLS</label>
+	<label>Timeout (seconds) <input class="short" type="number" name="timeout_s" value="30" min="0.1" max="600" step="0.1" required></label>
+	<label>Proxy
+		<select name="proxy">
+			<option value="">Direct</option>
+			{% for name in proxy_names %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+		</select>
+	</label>
+	{% if identity_names %}
+	<fieldset>
+		<legend>Identities</legend>
+		<input type="hidden" name="identities_sent" value="1">
+		{% for name in identity_names %}<label class="choice"><input type="checkbox" name="identities" value="{{ name }}"> {{ name }}</label>{% endfor %}
+	</fieldset>
+	{% else %}
+	<p class="hint">Create an identity first on the <a href="/_admin/identities">Identities</a> page, then bind it here. Without one, this upstream gets anonymous requests only.</p>
+	{% endif %}
+	<p class="actions"><button>Add</button></p>
+</form>
+{% endblock %}

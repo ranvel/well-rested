@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Test a URL — Well RESTed{% endblock %}
+{% block content %}
+<h1>Test a URL</h1>
+<p class="hint">Read-only: shows which rule would win and why, the cache key, and whether an entry exists. Nothing is fetched and nothing is written.</p>
+<form method="get" action="/_admin/test">
+	<label>Upstream
+		<select name="upstream">
+			<option value=""{% if not form.upstream %} selected{% endif %}>(no X-WR-Upstream: infer from the identity)</option>
+			{% for u in upstreams %}<option value="{{ u }}"{% if form.upstream == u %} selected{% endif %}>{{ u }}</option>{% endfor %}
+		</select>
+	</label>
+	<label>Path <input type="text" name="path" value="{{ form.path }}" placeholder="/rest/api/2/issue/ABC-1" required autofocus></label>
+	<label>Query string <input type="text" name="query" value="{{ form.query }}" placeholder="fields=summary (optional)"></label>
+	<label>Identity
+		<select name="identity">
+			{% for name in identities %}<option value="{{ name }}"{% if form.identity == name %} selected{% endif %}>{{ name }}</option>{% endfor %}
+		</select>
+	</label>
+	<p class="actions"><button>Test</button></p>
+</form>
+
+{% if result %}
+<h2>Outcome</h2>
+<p><strong>{{ result.outcome }}</strong></p>
+{% if result.upstream %}<p>Upstream: <strong>{{ result.upstream }}</strong></p>{% endif %}
+{% if result.route %}<p>Route: <strong>{{ result.route }}</strong></p>{% endif %}
+
+<h2>Matching rules</h2>
+{% if result.matches %}
+<table>
+	<thead><tr><th></th><th>Pattern</th><th>TTL</th><th class="num">Literal chars</th><th class="num">Wildcards</th></tr></thead>
+	<tbody>
+	{% for m in result.matches %}
+		<tr>
+			<td>{% if loop.first %}<span class="chip winner">winner</span>{% endif %}</td>
+			<td><code>{{ m.pattern }}</code> <a href="/_admin/rules/{{ m.id }}/edit">edit</a></td>
+			<td>{{ m.ttl | ttl_human }}</td>
+			<td class="num">{{ m.literals }}</td>
+			<td class="num">{{ m.wildcards }}</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+<p class="hint">Ranked by most literal characters, then fewest wildcards, then longest pattern, then newest rule.</p>
+{% else %}
+<p class="empty">No enabled rule {% if result.upstream %}of {{ result.upstream }} {% endif %}matches this path.</p>
+{% endif %}
+
+{% if result.key %}
+<h2>Cache entry</h2>
+<p>Partition <code>{{ result.identity }}</code>, key <code>{{ result.key }}</code></p>
+<p>
+	{% if result.state == "absent" %}<span class="chip">absent</span> nothing stored yet
+	{% elif result.state == "fresh" %}<span class="chip fresh">fresh</span> stored {{ result.age }}s ago
+	{% else %}<span class="chip stale">stale</span> stored {{ result.age }}s ago; the next request refreshes it{% endif %}
+</p>
+{% endif %}
+{% endif %}
+{% endblock %}
